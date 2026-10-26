@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2226%22%20height%3D%2226%22%20fill%3D%22%23fff%22%20stroke%3D%22%230b0d0e%22%20stroke-width%3D%225%22/%3E%3Crect%20x%3D%2211%22%20y%3D%2211%22%20width%3D%2210%22%20height%3D%2210%22%20fill%3D%22%230f766e%22/%3E%3C/svg%3E">
+<link rel="canonical" href="https://opencarrier.dev/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://opencarrier.dev/">
+<meta property="og:title" content="OpenCarrier API">
+<meta property="og:description" content="OpenCarrier is one API for every carrier: labels, quotes and tracking on your own accounts, with every carrier choice explained.">
+<meta name="twitter:card" content="summary">
+<title>OpenCarrier API</title>
+<meta name="description" content="OpenCarrier is one API for every carrier: labels, quotes and tracking on your own accounts, with every carrier choice explained.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+/* Layout: a 4x6 thermal shipping label, blown up to page size. Black on
+   paper, condensed headlines like routing print, one teal for decisions. */
+:root {
+  --paper: #fbfbf9;
+  --card: #ffffff;
+  --ink: #0b0d0e;
+  --ink-2: #464b4f;
+  --ink-3: #5d6368;
+  --rule: #0b0d0e;
+  --hair: #dcdedd;
+  --accent: #0f766e;
+  --accent-soft: #e3f2f0;
+  --bad: #b42318;
+  --code-bg: #0b0d0e;
+  --code-ink: #e7ebe9;
+  --code-dim: #8d9894;
+  --code-key: #5eead4;
+  --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0f1211; --card: #161a19; --ink: #edf0ee; --ink-2: #b4bbb8; --ink-3: #939a97;
+    --rule: #edf0ee; --hair: #2a302e; --accent: #2dd4bf; --accent-soft: #10302c; --bad: #f97066;
+    --code-bg: #070908; --code-ink: #e7ebe9; --code-dim: #7f8a86; --code-key: #5eead4; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0f1211; --card: #161a19; --ink: #edf0ee; --ink-2: #b4bbb8; --ink-3: #939a97;
+  --rule: #edf0ee; --hair: #2a302e; --accent: #2dd4bf; --accent-soft: #10302c; --bad: #f97066;
+  --code-bg: #070908; --code-ink: #e7ebe9; --code-dim: #7f8a86; --code-key: #5eead4; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { background: var(--paper); color: var(--ink); font: 400 17px/1.6 var(--body); font-stretch: 100%; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.wrap { max-width: 1160px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(2.6rem, 7vw, 5.4rem); line-height: 0.92; font-weight: 850; font-stretch: 68%; text-transform: uppercase; letter-spacing: -0.01em; }
+h2 { font-size: clamp(1.9rem, 4.2vw, 3rem); line-height: 1; font-weight: 800; font-stretch: 72%; text-transform: uppercase; }
+h3 { font-size: 1.15rem; line-height: 1.25; font-weight: 700; font-stretch: 90%; }
+p { margin: 0; }
+.label { font: 600 0.74rem/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+.lede { font-size: 1.15rem; color: var(--ink-2); max-width: 58ch; }
+.muted { color: var(--ink-2); }
+code, .mono { font-family: var(--mono); }
+
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--paper); border-bottom: 2px solid var(--rule); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); }
+header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 12px; }
+.brand { font: 850 1.25rem/1 var(--display); font-stretch: 70%; text-transform: uppercase; letter-spacing: 0.02em; color: var(--ink); text-decoration: none; display: flex; align-items: center; gap: 10px; }
+.brand i { width: 18px; height: 18px; border: 3px solid var(--ink); position: relative; flex: none; }
+.brand i::after { content: ""; position: absolute; inset: 3px; background: var(--accent); }
+nav.links { display: flex; align-items: center; gap: 22px; font: 500 0.85rem/1 var(--mono); }
+nav.links a { color: var(--ink-2); text-decoration: none; }
+nav.links a:hover { color: var(--ink); }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 18px; font: 600 0.9rem/1 var(--mono); text-decoration: none; border: 2px solid var(--ink); cursor: pointer; background: transparent; color: var(--ink); }
+.btn.primary { background: var(--ink); color: var(--paper); }
+.btn.small { padding: 9px 13px; font-size: 0.8rem; }
+@media (max-width: 760px) { nav.links a:not(.btn) { display: none; } }
+
+/* Hero */
+.hero .wrap { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 56px; align-items: start; padding-block: 64px 80px; }
+.hero-copy { display: grid; gap: 24px; min-width: 0; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.cta-row { display: flex; flex-wrap: wrap; gap: 12px; }
+@media (max-width: 920px) { .hero .wrap { grid-template-columns: 1fr; gap: 40px; padding-block: 44px 56px; } }
+
+/* The label */
+.ship-label { background: var(--card); border: 3px solid var(--rule); font-family: var(--mono); min-width: 0; max-width: 460px; width: 100%; justify-self: end; box-shadow: 10px 10px 0 var(--hair); }
+@media (max-width: 920px) { .ship-label { justify-self: start; } }
+.sl-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; border-bottom: 2px solid var(--rule); }
+.sl-cell { padding: 10px 14px; min-width: 0; }
+.sl-cell + .sl-cell { border-left: 2px solid var(--rule); }
+.sl-k { font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); display: block; }
+.sl-v { font-size: 0.86rem; font-weight: 600; overflow-wrap: anywhere; }
+.sl-big { padding: 14px; border-bottom: 2px solid var(--rule); display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap; }
+.sl-big b { font: 850 2.6rem/0.9 var(--display); font-stretch: 62%; text-transform: uppercase; }
+.sl-big span { font-size: 0.8rem; font-weight: 600; }
+.cands { list-style: none; margin: 0; padding: 8px 14px; font-size: 0.76rem; display: grid; gap: 4px; border-bottom: 2px solid var(--rule); }
+.cands li { display: grid; grid-template-columns: minmax(0, 1fr) 4.6rem minmax(0, 7.4rem); gap: 8px; align-items: baseline; }
+.cands .amt { text-align: right; font-variant-numeric: tabular-nums; }
+.cands .ok { color: var(--accent); font-weight: 600; }
+.cands .no { color: var(--bad); }
+.barcode { height: 56px; margin: 12px 14px 4px; background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 4px, var(--ink) 4px 5px, transparent 5px 8px, var(--ink) 8px 11px, transparent 11px 12px, var(--ink) 12px 13px, transparent 13px 16px); }
+.sl-foot { padding: 0 14px 12px; font-size: 0.72rem; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; color: var(--ink-2); }
+
+/* Sections */
+section { padding-block: 88px; border-top: 2px solid var(--rule); }
+.head { display: grid; gap: 14px; margin-bottom: 44px; max-width: 780px; }
+
+/* Code */
+pre { margin: 0; background: var(--code-bg); color: var(--code-ink); padding: 20px 22px; overflow-x: auto; font: 400 0.82rem/1.65 var(--mono); }
+pre .c { color: var(--code-dim); }
+pre .k { color: var(--code-key); }
+.codecard { border: 2px solid var(--rule); min-width: 0; }
+.codecard .cap { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border-bottom: 2px solid var(--rule); background: var(--card); font: 600 0.72rem/1.3 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+
+.split { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 56px; align-items: start; }
+.split + .split { margin-top: 80px; }
+.copy { display: grid; gap: 18px; min-width: 0; }
+@media (max-width: 900px) { .split { grid-template-columns: 1fr; gap: 28px; } }
+
+.points { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.points li { padding-left: 22px; position: relative; }
+.points li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 10px; height: 10px; background: var(--accent); }
+.points b { font-weight: 700; }
+
+/* Purchase states: the order is the protocol */
+.states { display: grid; gap: 0; border: 2px solid var(--rule); background: var(--card); min-width: 0; }
+.st { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr); gap: 16px; padding: 14px 16px; align-items: baseline; }
+.st + .st { border-top: 1px solid var(--hair); }
+.st code { font-weight: 600; font-size: 0.86rem; }
+.st p { font-size: 0.92rem; color: var(--ink-2); }
+.st.good code { color: var(--accent); }
+.st.warn code { color: var(--bad); }
+@media (max-width: 480px) { .st { grid-template-columns: 1fr; gap: 4px; } }
+
+/* After the label */
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 2px solid var(--rule); }
+.cell { padding: 24px 22px 26px; display: grid; gap: 10px; align-content: start; min-width: 0; background: var(--card); }
+.cell + .cell { border-left: 2px solid var(--rule); }
+.cell p { font-size: 0.95rem; color: var(--ink-2); }
+.cell code { font-size: 0.8rem; color: var(--ink); overflow-wrap: anywhere; }
+@media (max-width: 900px) { .grid3 { grid-template-columns: 1fr; } .cell + .cell { border-left: 0; border-top: 2px solid var(--rule); } }
+
+/* Endpoints */
+.endpoints { width: 100%; border-collapse: collapse; font: 400 0.84rem/1.4 var(--mono); }
+.endpoints td { padding: 10px 14px; border-bottom: 1px solid var(--hair); vertical-align: top; }
+.endpoints td:first-child { white-space: nowrap; font-weight: 600; }
+.endpoints td:last-child { font-family: var(--body); color: var(--ink-2); font-size: 0.92rem; min-width: 16rem; }
+.verb { display: inline-block; min-width: 3.4rem; color: var(--accent); }
+.tablewrap { overflow-x: auto; border: 2px solid var(--rule); background: var(--card); }
+
+.carriers { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip { border: 2px solid var(--rule); padding: 8px 12px; font: 600 0.85rem/1 var(--mono); background: var(--card); }
+.chip.soon { border-style: dashed; color: var(--ink-3); }
+
+/* Access */
+.access .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr); gap: 48px; align-items: center; }
+.contact { border: 3px solid var(--rule); background: var(--card); padding: 24px; display: grid; gap: 14px; min-width: 0; }
+.addr { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.addr code { font-size: 1.05rem; font-weight: 600; user-select: all; overflow-wrap: anywhere; }
+.copied { font: 500 0.78rem/1 var(--mono); color: var(--accent); }
+@media (max-width: 860px) { .access .wrap { grid-template-columns: 1fr; } }
+
+footer { border-top: 2px solid var(--rule); }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; padding-block: 26px; font: 400 0.8rem/1.5 var(--mono); color: var(--ink-3); }
+footer a { color: var(--ink-2); }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top"><i aria-hidden="true"></i>OpenCarrier</a>
+    <nav class="links" aria-label="Sections">
+      <a href="#decide">Carrier choice</a>
+      <a href="#guarantee">No double buys</a>
+      <a href="#after">After the label</a>
+      <a href="#api">API</a>
+      <a class="btn primary small" href="#access">Get API access</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="hero">
+    <div class="wrap">
+      <div class="hero-copy">
+        <span class="label">Carrier API · labels · quotes · tracking</span>
+        <h1>One API for every carrier. <em>Every choice explained.</em></h1>
+        <p class="lede">OpenCarrier buys labels, gets quotes and tracks packages across carriers through one REST API, on your own carrier accounts. When it picks the carrier for you, it records every option it weighed and why it chose one.</p>
+        <div class="cta-row">
+          <a class="btn primary" href="#access">Get API access</a>
+          <a class="btn" href="#api">Read the API</a>
+        </div>
+      </div>
+
+      <figure class="ship-label" aria-label="Example OpenCarrier plan decision, styled as a shipping label">
+        <div class="sl-row">
+          <div class="sl-cell"><span class="sl-k">Plan</span><span class="sl-v">pl_7KQ2M9XW3D · policy auto/v1</span></div>
+          <div class="sl-cell"><span class="sl-k">Pkgs</span><span class="sl-v">1 of 1</span></div>
+        </div>
+        <div class="sl-row">
+          <div class="sl-cell"><span class="sl-k">Ship to</span><span class="sl-v">ARLINGTON VA 22201 · RESIDENTIAL</span></div>
+          <div class="sl-cell"><span class="sl-k">Wt</span><span class="sl-v">2.3 LB</span></div>
+        </div>
+        <div class="sl-big"><b>FedEx 2Day</b><span>$11.92 · due Tue</span></div>
+        <ul class="cands" aria-label="Candidates considered">
+          <li><span>fedex 2_day</span><span class="amt">$11.92</span><span class="ok">chosen</span></li>
+          <li><span>fedex standard_overnight</span><span class="amt">$26.75</span><span>higher score</span></li>
+          <li><span>fedex express_saver</span><span class="amt">$9.85</span><span class="no">misses deliver-by</span></li>
+          <li><span>fedex ground</span><span class="amt">$8.10</span><span class="no">misses deliver-by</span></li>
+          <li><span>fedex priority_overnight</span><span class="amt">$31.06</span><span>higher score</span></li>
+        </ul>
+        <div class="barcode" aria-hidden="true"></div>
+        <div class="sl-foot"><span>794953535000</span><span>EXAMPLE · stored with the plan</span></div>
+      </figure>
+    </div>
+  </div>
+
+  <section id="decide">
+    <div class="wrap">
+      <div class="split">
+        <div class="copy">
+          <span class="label">Carrier choice</span>
+          <h2>A decision you can audit, not a black box.</h2>
+          <p class="lede">Ask for an <code>auto</code> plan and OpenCarrier quotes every eligible account and service at once. It drops options that break a rule, such as a deliver-by date or a cost cap, and scores the rest by price plus the expected cost of a late delivery.</p>
+          <ul class="points">
+            <li><b>Every candidate is kept.</b> Quotes, delivery estimates, on-time rates and the reason each option lost are stored with the plan.</li>
+            <li><b>Policies are versioned.</b> Each plan names the policy that made it, so a decision can be replayed and compared later.</li>
+            <li><b>You set the rules.</b> Deliver-by date, service level, signature, a maximum cost and preferred carriers.</li>
+          </ul>
+        </div>
+        <div class="codecard">
+          <div class="cap"><span>POST /v1/shipments/{id}/plans</span><span>response, trimmed</span></div>
+<pre><span class="k">"policy"</span>: "auto/v1",
+<span class="k">"chosen"</span>: 0,  <span class="c">// index into candidates</span>
+<span class="k">"candidates"</span>: [
+  { "carrier": "fedex", "service": "2_day",
+    "cost": { "amountMinor": 1192, "currency": "USD" },
+    "estimate": { "deliverBy": "2026-10-27", "source": "carrier" },
+    "onTimeRate": 0.97, "eligible": true,
+    "score": 1207 },  <span class="c">// $11.92 + 3% × $5.00 late cost</span>
+  { "carrier": "fedex", "service": "express_saver",
+    "cost": { "amountMinor": 985, "currency": "USD" },
+    "excluded": [<span class="k">"misses_deliver_by"</span>] },
+  <span class="c">… every other account and service, with its reason</span>
+]</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="guarantee">
+    <div class="wrap">
+      <div class="split">
+        <div class="copy">
+          <span class="label">Purchase guarantee</span>
+          <h2>A timeout never buys the same label twice.</h2>
+          <p class="lede">Carrier APIs time out. A naive retry pays for a second label. OpenCarrier records the purchase before it calls the carrier, and a request with the same <code>Idempotency-Key</code> returns the stored result instead of calling again.</p>
+          <p class="muted">When a carrier's answer is lost, the purchase is marked <code>unknown</code>, never retried blindly, and settled by lookup or by an operator.</p>
+        </div>
+        <div class="states" aria-label="Purchase states">
+          <div class="st"><code>purchasing</code><p>Recorded with a lease before the carrier is called. A repeat request reads this row.</p></div>
+          <div class="st good"><code>purchased</code><p>Tracking numbers and labels stored, in PDF and ZPL for thermal printers.</p></div>
+          <div class="st"><code>rejected</code><p>The carrier refused with a code, such as a bad address. Nothing was bought; plan again safely.</p></div>
+          <div class="st warn"><code>unknown</code><p>The carrier may have created it. Never retried automatically; reconciled instead.</p></div>
+          <div class="st"><code>voided</code><p>Canceled with the carrier. Voiding twice is harmless.</p></div>
+        </div>
+      </div>
+
+      <div class="split">
+        <div class="copy">
+          <span class="label">Your accounts</span>
+          <h2>Bring your own carrier accounts and your own rates.</h2>
+          <p class="lede">Connect the UPS and FedEx accounts you already have. You keep your negotiated rates and your relationship with the carrier; OpenCarrier does not resell postage.</p>
+        </div>
+        <ul class="points">
+          <li><b>Encrypted at rest.</b> Each account's credentials are sealed with AES-256-GCM under their own data key, and are never returned by the API or written to logs.</li>
+          <li><b>Checked before use.</b> Credentials are validated when you connect an account, and a verify call tests them with the carrier.</li>
+          <li><b>Isolated by tenant.</b> Every read of a credential requires the tenant it belongs to.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="after">
+    <div class="wrap">
+      <div class="head">
+        <span class="label">After the label</span>
+        <h2>Know where it is, and what it really cost.</h2>
+        <p class="lede">Quotes are promises. OpenCarrier keeps following each package until it is delivered, then compares what you were quoted with what the carrier billed.</p>
+      </div>
+      <div class="grid3">
+        <div class="cell">
+          <h3>One tracking feed</h3>
+          <p>Every carrier's scans in one set of statuses, from label created to delivered or returned. Read them as one ordered feed, so nothing is missed between polls.</p>
+          <code>GET /v1/tracking-events?after=…</code>
+        </div>
+        <div class="cell">
+          <h3>Signed webhooks</h3>
+          <p>Register an endpoint and receive each event as it happens. Deliveries are signed, retried, and safe to receive twice.</p>
+          <code>OpenCarrier-Signature: v1=…</code>
+        </div>
+        <div class="cell">
+          <h3>Settled cost</h3>
+          <p>Import the carrier's invoice CSV. Amounts are matched to labels to the cent, and re-importing a file changes nothing.</p>
+          <code>POST /v1/invoices</code>
+        </div>
+      </div>
+      <div class="grid3" style="border-top:0">
+        <div class="cell" style="grid-column: 1 / -1">
+          <h3>Carrier outcomes report</h3>
+          <p>For any period: delivered packages, on-time rate, average days late, and quoted against settled cost, for each carrier and service. The numbers the next carrier choice should be based on.</p>
+          <code>GET /v1/reports/outcomes?from=…&amp;to=…</code>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="api">
+    <div class="wrap">
+      <div class="split">
+        <div class="copy">
+          <span class="label">API</span>
+          <h2>Four calls from intent to label.</h2>
+          <p class="lede">Describe what has to move. Get a plan. Buy it. Print it. Every call is documented in OpenAPI and authenticated with a per-tenant key.</p>
+          <div>
+            <span class="label">Carriers</span>
+            <div class="carriers" style="margin-top:12px">
+              <span class="chip">FedEx · quotes, labels, tracking</span>
+              <span class="chip">UPS · labels, tracking</span>
+              <span class="chip">Mock (for tests)</span>
+              <span class="chip soon">USPS · planned</span>
+              <span class="chip soon">Regional · planned</span>
+            </div>
+          </div>
+          <p class="muted">The mock carrier is deterministic and can be told to time out or refuse, so you can test your failure paths before a real carrier ever sees them.</p>
+        </div>
+        <div class="codecard">
+          <div class="cap"><span>curl</span><span>US domestic</span></div>
+<pre><span class="c"># 1. Say what has to move</span>
+curl -X POST $OC/v1/shipments \
+  -H "Authorization: Bearer $OC_KEY" \
+  -H "Idempotency-Key: order-58213" \
+  -d '{"origin": {...}, "destination": {...},
+       "packages": [{"weightGrams": 1040}],
+       "constraints": {"deliverBy": "2026-10-27"}}'
+
+<span class="c"># 2. Let OpenCarrier choose, and keep the reasons</span>
+curl -X POST $OC/v1/shipments/$ID/plans \
+  -d '{"mode": "auto"}'
+
+<span class="c"># 3. Buy it, once, however often you retry</span>
+curl -X POST $OC/v1/shipments/$ID/purchase \
+  -H "Idempotency-Key: order-58213-buy"
+
+<span class="c"># 4. Print it on a thermal printer</span>
+curl $OC/v1/shipments/$ID/labels/0?format=zpl</pre>
+        </div>
+      </div>
+
+      <div style="margin-top:56px" class="tablewrap">
+        <table class="endpoints">
+          <tbody>
+            <tr><td><span class="verb">POST</span>/v1/quotes</td><td>Prices for a shipment, without saving anything</td></tr>
+            <tr><td><span class="verb">POST</span>/v1/shipments/{id}/void</td><td>Cancel a purchase with the carrier</td></tr>
+            <tr><td><span class="verb">GET</span>/v1/carriers</td><td>What each carrier supports: services, limits, signature, tracking</td></tr>
+            <tr><td><span class="verb">POST</span>/v1/carrier-accounts</td><td>Connect a carrier account with your own credentials</td></tr>
+            <tr><td><span class="verb">POST</span>/v1/webhook-endpoints</td><td>Receive signed tracking events</td></tr>
+            <tr><td><span class="verb">GET</span>/v1/reports/outcomes</td><td>On-time rate and settled cost by carrier and service</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="access" id="access">
+    <div class="wrap">
+      <div class="copy">
+        <span class="label">Early access</span>
+        <h2>Ship your first label through OpenCarrier.</h2>
+        <p class="lede">OpenCarrier is in early access for US domestic parcel shippers, warehouse systems and 3PLs. Tell us your daily volume and which carrier accounts you have, and we'll set up a tenant and API key.</p>
+      </div>
+      <div class="contact">
+        <span class="label">Write to</span>
+        <div class="addr">
+          <code id="email">hello@opencarrier.dev</code>
+          <button class="btn small" type="button" id="copy">Copy</button>
+          <span class="copied" id="copied" hidden>Copied</span>
+        </div>
+        <p class="muted">Include your daily parcel volume and your carrier accounts.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>OpenCarrier · by AppliedSymbolics, a Reasoning Machines LLC company</span>
+    <span>Powers shipping in <a href="https://ambientos.dev" target="_blank" rel="noopener">Ambient OS</a>, our operations platform</span>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('copy').addEventListener('click', function () {
+    var el = document.getElementById('email');
+    var done = document.getElementById('copied');
+    function show() { done.hidden = false; setTimeout(function () { done.hidden = true; }, 2000); }
+    function select() { var r = document.createRange(); r.selectNodeContents(el); var s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+    try { navigator.clipboard.writeText(el.textContent).then(show, select); } catch (e) { select(); }
+  });
+</script>
+</body>
+</html>
