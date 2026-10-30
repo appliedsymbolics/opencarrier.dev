@@ -92,7 +92,7 @@ nav.links a:hover { color: var(--ink); }
 @media (max-width: 920px) { .hero .wrap { grid-template-columns: 1fr; gap: 40px; padding-block: 44px 56px; } }
 
 /* The label */
-.ship-label { background: var(--card); border: 3px solid var(--rule); font-family: var(--mono); min-width: 0; max-width: 460px; width: 100%; justify-self: end; box-shadow: 10px 10px 0 var(--hair); }
+.ship-label { margin: 0; background: var(--card); border: 3px solid var(--rule); font-family: var(--mono); min-width: 0; max-width: 460px; width: 100%; justify-self: end; box-shadow: 10px 10px 0 var(--hair); }
 @media (max-width: 920px) { .ship-label { justify-self: start; } }
 .sl-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; border-bottom: 2px solid var(--rule); }
 .sl-cell { padding: 10px 14px; min-width: 0; }
@@ -212,7 +212,7 @@ footer a { color: var(--ink-2); }
 
       <figure class="ship-label" aria-label="Example OpenCarrier plan decision, styled as a shipping label">
         <div class="sl-row">
-          <div class="sl-cell"><span class="sl-k">Plan</span><span class="sl-v">pl_7KQ2M9XW3D · policy auto/v1</span></div>
+          <div class="sl-cell"><span class="sl-k">Plan</span><span class="sl-v">pl_7KQ2M9XW3D · policy auto/v2</span></div>
           <div class="sl-cell"><span class="sl-k">Pkgs</span><span class="sl-v">1 of 1</span></div>
         </div>
         <div class="sl-row">
@@ -244,6 +244,8 @@ footer a { color: var(--ink-2); }
             <li><b>No carrier call.</b> The answer comes from declared capabilities alone. Nothing is priced, stored or sent to a carrier, so it is cheap enough to run on every order.</li>
             <li><b>Packages are optional.</b> The order is not packed yet, so send only the addresses and requirements. Package rules apply only when you send packages.</li>
             <li><b>Every reason, by name.</b> Each account and service comes back with stable exclusion reasons, such as <code>country_unsupported</code>, <code>phone_required</code> or <code>signature_unsupported</code>.</li>
+            <li><b>Accounts can say no.</b> Refuse item classes such as hazmat or alcohol, and limit an account to regions or exclude postal prefixes. The reasons read <code>class_refused</code>, <code>region_unsupported</code> and <code>postal_excluded</code>.</li>
+            <li><b>Handling and payers count too.</b> A carrier that cannot request a required handling code, or bill the named payer, comes back as <code>handling_unsupported</code> or <code>payer_unsupported</code>.</li>
             <li><b>Deliver-by aware.</b> A service whose declared transit days arrive after the deliver-by date is listed as <code>slower_than_deliver_by</code>, so you see what was too slow and not only what fits.</li>
           </ul>
           <p class="muted">In <a href="https://ambientos.dev" target="_blank" rel="noopener">Ambient OS</a>, the warehouse system holds an order that no carrier can take at intake, with its most common reasons, for a person to decide. A purchase still quotes and plans with the carrier as usual.</p>
@@ -281,18 +283,21 @@ footer a { color: var(--ink-2); }
           <ul class="points">
             <li><b>Every candidate is kept.</b> Quotes, delivery estimates, on-time rates and the reason each option lost are stored with the plan.</li>
             <li><b>Policies are versioned.</b> Each plan names the policy that made it, so a decision can be replayed and compared later.</li>
-            <li><b>You set the rules.</b> Deliver-by date, service level, signature, a maximum cost and preferred carriers.</li>
+            <li><b>You set the rules.</b> Deliver-by date, service level from deferred to overnight, handling, signature, a maximum cost and preferred carriers.</li>
+            <li><b>You choose how it ranks.</b> Best value, cheapest or fastest, per plan.</li>
+            <li><b>Measured beats declared.</b> Once 20 promised deliveries in 90 days back a carrier service, best value uses your own on-time rate, and each candidate says which rate it used.</li>
           </ul>
         </div>
         <div class="codecard">
           <div class="cap"><span>POST /v1/shipments/{id}/plans</span><span>response, trimmed</span></div>
-<pre><span class="k">"policy"</span>: "auto/v1",
+<pre><span class="k">"policy"</span>: "auto/v2",
 <span class="k">"chosen"</span>: 0,  <span class="c">// index into candidates</span>
 <span class="k">"candidates"</span>: [
   { "carrier": "fedex", "service": "2_day",
     "cost": { "amountMinor": 1192, "currency": "USD" },
     "estimate": { "deliverBy": "2026-10-27", "source": "carrier" },
-    "onTimeRate": 0.97, "eligible": true,
+    "onTimeRate": 0.97, "onTimeSource": "measured",
+    "eligible": true,
     "score": 1207 },  <span class="c">// $11.92 + 3% × $5.00 late cost</span>
   { "carrier": "fedex", "service": "express_saver",
     "cost": { "amountMinor": 985, "currency": "USD" },
@@ -424,6 +429,7 @@ curl $OC/v1/shipments/$ID/labels/0?format=zpl</pre>
             <tr><td><span class="verb">POST</span>/v1/carrier-accounts</td><td>Connect a carrier account with your own credentials</td></tr>
             <tr><td><span class="verb">POST</span>/v1/webhook-endpoints</td><td>Receive signed tracking events</td></tr>
             <tr><td><span class="verb">GET</span>/v1/reports/outcomes</td><td>On-time rate and settled cost by carrier and service</td></tr>
+            <tr><td><span class="verb">GET</span>/v1/catalog</td><td>Neutral service levels and handling codes</td></tr>
           </tbody>
         </table>
       </div>
@@ -435,15 +441,12 @@ curl $OC/v1/shipments/$ID/labels/0?format=zpl</pre>
       <div class="head">
         <span class="label">Roadmap · planned, not shipped</span>
         <h2>What carriers will be able to tell you next.</h2>
-        <p class="lede">Feasibility and carrier choice decide from what each carrier account declares. The next carrier work makes those declarations richer and checks them against what really happens. None of this is available yet.</p>
+        <p class="lede">Feasibility and carrier choice decide from what each carrier account declares. The next carrier work closes the gaps below. None of this is available yet.</p>
       </div>
       <ul class="roadmap">
-        <li><span class="tag">Planned</span><h3>Provider acceptance</h3><p>Know whether a carrier or provider accepted a handoff, not only that a label was bought.</p></li>
-        <li><span class="tag">Planned</span><h3>Service area</h3><p>Region and postal-code coverage per service, checked by the same eligibility rules as countries today.</p></li>
-        <li><span class="tag">Planned</span><h3>Handling vocabulary</h3><p>One shared set of handling requirements that every carrier's capabilities are described in.</p></li>
-        <li><span class="tag">Planned</span><h3>Service defaults</h3><p>Default services and options per account, so a plan starts from your usual choice.</p></li>
-        <li><span class="tag">Planned</span><h3>Price basis</h3><p>State which rate a cost comes from, so quoted and settled amounts are compared on the same basis.</p></li>
-        <li><span class="tag">Planned</span><h3>Measured delivery outcomes</h3><p>Base carrier choice on the on-time results OpenCarrier measures, in place of declared planning rates.</p></li>
+        <li><span class="tag">Planned</span><h3>Handling on UPS and FedEx</h3><p>Saturday delivery, liftgate and temperature control requested through each carrier. Until then, a shipment that needs them is not eligible there.</p></li>
+        <li><span class="tag">Planned</span><h3>Recipient and third-party billing</h3><p>UPS and FedEx labels billed to an account other than the shipper's. Until then, those shipments are not eligible there.</p></li>
+        <li><span class="tag">Planned</span><h3>Price basis</h3><p>Rank options by what you bill, or by margin, as well as by carrier cost.</p></li>
         <li><span class="tag">Planned</span><h3>Freight</h3><p>Shipments beyond parcel, through the same API.</p></li>
       </ul>
     </div>
